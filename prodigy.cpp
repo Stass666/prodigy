@@ -1,10 +1,10 @@
 #define RAST 20
 #define RES 5
-#define MAX 500
+#define MAX 1200
 #define MAXNRG 3000
-#define WID 900
-#define HIG 900
-#define PIT 0.1
+#define WID 700
+#define HIG 700
+#define BOTSIZE 2
 #define SPD 0.005
 #define PI 3.14159265
 #include <ctime>
@@ -62,7 +62,7 @@ struct Bot{
 	public:
 		double x,y,vector,speed,energy;
 		unsigned int old,target,home;
-		bool alive,raid;
+		bool alive,raid,say;
 };
 
 Bot zm[MAX];
@@ -82,10 +82,9 @@ void ggstep(int n){
 			gg[n].energy=MAXNRG;			
 			gg[n].vector=(double)rand()/16384*PI;			
 			gg[n].speed=(float)rand()/32768.0f*(SPD/5)+SPD/10;
-			
-			
 		}	
-	
+		if(n==0)gg[n].energy-=2;
+		
 			if(rand()<70 && n>0 )gg[n].vector=vec(gg[0].x,gg[0].y,gg[n].x,gg[n].y)+rand()/32768.0f*PI-PI/2;
 			if(rand()<70 && n==0)gg[n].vector=vec(gg[0].x,gg[0].y,0,0)+rand()/32768.0f*PI-PI/2;
 	
@@ -103,8 +102,9 @@ void ggstep(int n){
 void step(int n){
 
 			population++;
+			
 			for(int j=0;j<MAX;j++){
-				if(((zm[n].x-zm[j].x)*(zm[n].x-zm[j].x) + (zm[n].y-zm[j].y)*(zm[n].y-zm[j].y))<BLIZOST){
+				if(((zm[n].x-zm[j].x)*(zm[n].x-zm[j].x) + (zm[n].y-zm[j].y)*(zm[n].y-zm[j].y))<BLIZOST && !zm[n].say && zm[j].say){
 					if(zm[n].raid && (zm[n].target>(zm[j].target+RAST))){
 						zm[n].target=zm[j].target+RAST;
 						zm[n].vector=vec(zm[n].x,zm[n].y,zm[j].x,zm[j].y);
@@ -126,8 +126,12 @@ void step(int n){
 				}
 				if(!zm[n].raid && gg[i].home){
 					zm[n].vector+=PI;
-					
+					gg[i].energy++;
 					zm[n].raid=1;
+				}
+				if(gg[i].home && gg[i].energy>3000){
+					zm[n].x=gg[i].x;
+					zm[n].y=gg[i].y;
 				}
 				if(!gg[i].home)zm[n].target=0;
 				if( gg[i].home)zm[n].home=0;
@@ -150,7 +154,7 @@ void step(int n){
 			if(zm[n].x<-1)zm[n].x+=2;
 			if(zm[n].y> 1)zm[n].y-=2;
 			if(zm[n].y<-1)zm[n].y+=2;
-			sp(zm[n].x,zm[n].y,zm[n].raid,5);
+			sp(zm[n].x,zm[n].y,zm[n].raid,BOTSIZE);
 			
 			zm[n].target++;zm[n].home++;
 			population++;
@@ -239,6 +243,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		glClearColor (1.0f, 1.0f, 1.0f, 0.0f);		
 //		glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
 		glClear (GL_COLOR_BUFFER_BIT);
+//		glEnable( GL_POINT_SMOOTH );
+		glEnable( GL_BLEND );
 		glPushMatrix ();
 		//	glRotatef (theta, 0.2f, 0.3f, 0.3f);
 		
@@ -277,16 +283,10 @@ iter++;
 	population=0;		
 	
 		
-
-  		for(int i=0;i<MAX;i++)if(zm[i].alive){
-			step(i);
-			for(int j=0;j<MAX;j++){
-
-			}
-		
+		for(int i=0;i<MAX;i++)zm[i].say=rand()%2;
+  		for(int i=0;i<MAX;i++)if(zm[i].alive)step(i);
 
 
-		}
 
 
 		
@@ -311,7 +311,7 @@ void Mir(){
 		zm[i].x=(double)rand()/16384-1;
 		zm[i].y=(double)rand()/16384-1;
 		zm[i].vector=(double)rand()/16384*PI;
-		zm[i].speed=(float)rand()/32768.0f*(SPD/3)+SPD;		
+		zm[i].speed=(float)rand()/32768.0f*(SPD*2)+SPD/2;		
 		zm[i].alive=true;
 		zm[i].energy=0.5;
 		zm[i].raid=1;
@@ -373,6 +373,5 @@ void DisableOpenGL (HWND hwnd, HDC hdc, HGLRC hrc)
     wglDeleteContext (hrc);
     ReleaseDC (hwnd, hdc);
 }
-
 
 
